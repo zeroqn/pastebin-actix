@@ -1,0 +1,15 @@
+[package]
+name = "pastebin-actix"
+version = "0.1.0"
+authors = ["zero.qn"]
+
+[dependencies]
+diesel = { version = "1.2.0", features = ["postgres"] }
+dotenv = "0.11.0"
+actix = "0.5"
+actix-web = { git = "https://github.com/actix/actix-web.git", rev = "fa9edf2" }
+futures = "0.1"
+lazy_static = "1.0.0"
+serde_json = "1.0.0"
+serde = "1.0.0"
+serde_derive = "1.0.0"
