@@ -9,7 +9,7 @@ use db::{self, executor::DbExecutor};
 #[macro_use]
 pub mod macros;
 
-pub fn connect_db(database_url: &'static str, conns: usize) -> Addr<Syn, DbExecutor> {
+pub fn connect_db(database_url: &'static str, conns: usize) -> Addr<DbExecutor> {
     let (tx, rx) = channel();
 
     thread::spawn(move || {

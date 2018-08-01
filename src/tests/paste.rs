@@ -211,7 +211,9 @@ fn test_update_paste_with_bad_payload() {
         .body("{\"id\": \"dddd\"}")
         .unwrap();
 
-    assert_res_err_msg!(srv, req, 400, ERR_MSG_BAD_JSON_PAYLOAD);
+    assert_res_err!(srv, req, 400, |res: ResponseError| {
+        assert!(res.msg.contains("Json deserialize error"));
+    });
 }
 
 #[test]
