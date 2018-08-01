@@ -105,18 +105,14 @@ pub struct UpdatePaste {
 }
 
 pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
-    use futures::Stream;
-    use serde_json;
+    use std::time::SystemTime;
 
     let db_chan = req.state().db_chan.clone();
 
     // try manual way to parse json payload
-    call_ctrl!(|| req.concat2()
+    call_ctrl!(|| req.json()
         .from_err()
-        .and_then(|body| serde_json::from_slice::<UpdatePaste>(&body)
-            .map_err(|_err| Error::PayloadError(constant::ERR_MSG_BAD_JSON_PAYLOAD.to_owned())))
-        .from_err()
-        .and_then(move |updated_paste| db_chan
+        .and_then(move |updated_paste: UpdatePaste| db_chan
             .send(paste_srv::UpdatePasteMsg {
                 id: updated_paste.id,
                 title: updated_paste.title,
