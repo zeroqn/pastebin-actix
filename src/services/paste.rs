@@ -60,8 +60,7 @@ impl Handler<UpdatePasteMsg> for DbExecutor {
                 title.eq(msg.title),
                 body.eq(msg.body),
                 modified_at.eq(msg.modified_at),
-            ))
-            .get_result(self.conn())
+            )).get_result(self.conn())
     }
 }
 
@@ -119,35 +118,35 @@ pub struct TimeCondition {
 }
 
 macro_rules! cmp {
-    ($query: expr, $column: expr, $cmp: expr, $cond: expr) => (
+    ($query:expr, $column:expr, $cmp:expr, $cond:expr) => {
         match $cmp {
             CmpOp::GT => $query.filter($column.gt($cond)),
             CmpOp::EQ => $query.filter($column.eq($cond)),
             CmpOp::LT => $query.filter($column.lt($cond)),
             CmpOp::GE => $query.filter($column.ge($cond)),
-            CmpOp::LE => $query.filter($column.le($cond))
+            CmpOp::LE => $query.filter($column.le($cond)),
         }
-    )
+    };
 }
 
 macro_rules! order {
-    ($query: expr, $column: expr, $order: expr) => (
+    ($query:expr, $column:expr, $order:expr) => {
         match $order {
             Order::Ascend => $query.order($column.asc()),
-            Order::Decrease => $query.order($column.desc())
+            Order::Decrease => $query.order($column.desc()),
         }
-    )
+    };
 }
 
 macro_rules! orderby {
-    ($query: expr, $column: expr, $order: expr) => (
+    ($query:expr, $column:expr, $order:expr) => {
         match $column {
             Item::Title => order!($query, title, $order),
             Item::Body => order!($query, body, $order),
             Item::CreatedAt => order!($query, created_at, $order),
-            Item::ModifiedAt => order!($query, modified_at, $order)
+            Item::ModifiedAt => order!($query, modified_at, $order),
         }
-    )
+    };
 }
 
 pub struct GetPasteListMsg {
@@ -243,8 +242,8 @@ impl Handler<DelPasteByIdMsg> for DbExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
     use futures::future::Future;
+    use std::time::Duration;
 
     use crate::TEST_DB_CHAN;
 
@@ -366,12 +365,10 @@ mod tests {
                     op: CmpOp::LE,
                     time: SystemTime::now() + Duration::new(10, 0),
                 }),
-                orderby_list: Some(vec![
-                    Orderby {
-                        item: Item::Title,
-                        order: Order::Ascend,
-                    },
-                ]),
+                orderby_list: Some(vec![Orderby {
+                    item: Item::Title,
+                    order: Order::Ascend,
+                }]),
                 limit: Some(5),
                 ..Default::default()
             }

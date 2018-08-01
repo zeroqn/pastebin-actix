@@ -106,7 +106,6 @@ pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
 
     let db_chan = req.state().db_chan.clone();
 
-    // try manual way to parse json payload
     call_ctrl!(|| req
         .json()
         .from_err()

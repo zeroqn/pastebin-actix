@@ -1,5 +1,5 @@
-use std::thread;
 use std::sync::mpsc::channel;
+use std::thread;
 
 use actix;
 use actix::prelude::*;

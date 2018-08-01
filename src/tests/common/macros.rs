@@ -1,14 +1,14 @@
 macro_rules! sync_send {
-    ($db_addr: expr, $msg: expr) => (
+    ($db_addr: expr, $msg: expr) => {
         $db_addr.send($msg).wait().unwrap().unwrap()
-        )
+    };
 }
 
 macro_rules! parse_json {
     ($srv: expr, $res: expr, $type: ty) => {{
         let body = $srv.execute($res.body()).unwrap();
         serde_json::from_slice::<$type>(&body).unwrap()
-    }}
+    }};
 }
 
 macro_rules! assert_res_err {
@@ -19,7 +19,7 @@ macro_rules! assert_res_err {
         let err_res = parse_json!($srv, res, ResponseError);
         assert_eq!(err_res.code, $code);
         $assertion(err_res);
-    }}
+    }};
 }
 
 macro_rules! assert_res_err_msg {
@@ -27,7 +27,7 @@ macro_rules! assert_res_err_msg {
         assert_res_err!($srv, $req, $code, |res_err: ResponseError| {
             assert_eq!(res_err.msg, $msg);
         });
-    }}
+    }};
 }
 
 macro_rules! assert_res {
@@ -36,5 +36,5 @@ macro_rules! assert_res {
         assert!(res.status().is_success());
 
         $assertion(parse_json!($srv, res, $res_ty));
-    }}
+    }};
 }

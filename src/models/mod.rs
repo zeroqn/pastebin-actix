@@ -1,2 +1,2 @@
-pub mod schema;
 pub mod paste;
+pub mod schema;

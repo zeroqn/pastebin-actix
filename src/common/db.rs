@@ -1,6 +1,6 @@
 // prelude is required for PgConnection::establish()
-use diesel::prelude::*;
 use diesel::pg::PgConnection;
+use diesel::prelude::*;
 
 pub fn establish_connection(database_url: &str) -> PgConnection {
     PgConnection::establish(database_url).expect(&format!("Error connection to {}", database_url))

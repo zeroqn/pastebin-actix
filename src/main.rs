@@ -7,16 +7,16 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
-mod models;
-mod services;
-mod controllers;
 mod apps;
 mod common;
+mod controllers;
+mod models;
+mod services;
 #[cfg(test)]
 mod tests;
 
-use actix_web::server;
 use actix::prelude::*;
+use actix_web::server;
 
 use crate::common::db::{self, executor::DbExecutor};
 
@@ -46,8 +46,8 @@ fn main() {
             db_chan: addr.clone(),
         })
     }).bind(&ENV.bind_addr)
-        .unwrap()
-        .run();
+    .unwrap()
+    .run();
 
     sys.run();
 }

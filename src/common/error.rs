@@ -1,9 +1,11 @@
-use std::{fmt, error::Error as StdError, num::ParseIntError};
+use std::{error::Error as StdError, fmt, num::ParseIntError};
 
 use actix::MailboxError;
-use actix_web::{HttpResponse,
-                error::{JsonPayloadError, PayloadError, ResponseError as ActixResponseError},
-                http::StatusCode};
+use actix_web::{
+    error::{JsonPayloadError, PayloadError, ResponseError as ActixResponseError},
+    http::StatusCode,
+    HttpResponse,
+};
 use diesel::result::Error as DieselError;
 use futures::future::{self, Future};
 
