@@ -6,10 +6,10 @@ use controllers::FutureJsonResponse;
 use common::{constant, error::Error};
 use services::paste as paste_srv;
 
-pub fn get_paste_by_id(req: HttpRequest<State>) -> FutureJsonResponse {
+pub fn get_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
 
-    call_ctrl!(|| future::ok(req)
+    call_ctrl!(|| future::ok(req.clone())
         .and_then(|req| req.match_info()["id"].parse::<i64>())
         .from_err()
         .and_then(move |id| db_chan.send(paste_srv::GetPasteByIdMsg { id }).from_err()))
@@ -27,8 +27,7 @@ pub struct GetPasteListConds {
 }
 
 pub fn get_paste_list(
-    req: HttpRequest<State>,
-    conds: Query<GetPasteListConds>,
+    (req, conds): (HttpRequest<State>, Query<GetPasteListConds>),
 ) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
     let created_at = conds
@@ -81,7 +80,7 @@ pub struct NewPaste {
     pub body: String,
 }
 
-pub fn create_paste(req: HttpRequest<State>) -> FutureJsonResponse {
+pub fn create_paste(req: &HttpRequest<State>) -> FutureJsonResponse {
     use std::time::SystemTime;
 
     let db_chan = req.state().db_chan.clone();
@@ -105,8 +104,7 @@ pub struct UpdatePaste {
     pub body: String,
 }
 
-pub fn update_paste_by_id(req: HttpRequest<State>) -> FutureJsonResponse {
-    use std::time::SystemTime;
+pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     use futures::Stream;
     use serde_json;
 
@@ -128,10 +126,10 @@ pub fn update_paste_by_id(req: HttpRequest<State>) -> FutureJsonResponse {
             .from_err()))
 }
 
-pub fn del_paste_by_id(req: HttpRequest<State>) -> FutureJsonResponse {
+pub fn del_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
 
-    call_ctrl!(|| future::ok(req)
+    call_ctrl!(|| future::ok(req.clone())
         .and_then(|req| req.match_info()["id"].parse::<i64>())
         .from_err()
         .and_then(move |id| db_chan.send(paste_srv::DelPasteByIdMsg { id }).from_err())

@@ -13,6 +13,6 @@ pub fn create(state: State) -> App<State> {
         })
         .resource("", |r| {
             r.route().filter(pred::Post()).a(create_paste);
-            r.route().filter(pred::Get()).with2(get_paste_list);
+            r.route().filter(pred::Get()).with(get_paste_list);
         })
 }
