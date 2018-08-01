@@ -30,11 +30,12 @@ lazy_static! {
 
 #[cfg(test)]
 lazy_static! {
-    static ref TEST_DB_CHAN: Addr<Syn, DbExecutor> = tests::common::connect_db(&ENV.database_url, ENV.actix_db_conns);
+    static ref TEST_DB_CHAN: Addr<DbExecutor> =
+        tests::common::connect_db(&ENV.database_url, ENV.actix_db_conns);
 }
 
 pub struct State {
-    db_chan: Addr<Syn, DbExecutor>,
+    db_chan: Addr<DbExecutor>,
 }
 
 fn main() {
