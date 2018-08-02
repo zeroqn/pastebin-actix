@@ -1,7 +1,7 @@
 use actix_web::HttpResponse;
 use futures::future::Future;
 
-use common::error::Error;
+use crate::common::error::Error;
 
 type FutureJsonResponse = Box<Future<Item = HttpResponse, Error = Error>>;
 

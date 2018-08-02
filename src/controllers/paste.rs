@@ -1,10 +1,10 @@
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
 use futures::future::{self, Future};
 
-use State;
-use controllers::FutureJsonResponse;
-use common::{constant, error::Error};
-use services::paste as paste_srv;
+use crate::common::{constant, error::Error};
+use crate::controllers::FutureJsonResponse;
+use crate::services::paste as paste_srv;
+use crate::State;
 
 pub fn get_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
@@ -60,18 +60,15 @@ pub fn get_paste_list(
         .and_then(move |mut msg| created_at.map(|created_at| {
             msg.created_at = created_at;
             msg
-        }))
-        .from_err()
+        })).from_err()
         .and_then(move |mut msg| modified_at.map(|modified_at| {
             msg.modified_at = modified_at;
             msg
-        }))
-        .from_err()
+        })).from_err()
         .and_then(move |mut msg| orderby_list.map(|orderby_list| {
             msg.orderby_list = orderby_list;
             msg
-        }))
-        .and_then(move |msg| db_chan.send(msg).from_err()))
+        })).and_then(move |msg| db_chan.send(msg).from_err()))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -86,15 +83,15 @@ pub fn create_paste(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
 
     // this requires correct content type
-    call_ctrl!(|| req.json()
+    call_ctrl!(|| req
+        .json()
         .from_err()
         .and_then(move |new_paste: NewPaste| db_chan
             .send(paste_srv::CreatePasteMsg {
                 title: new_paste.title,
                 body: new_paste.body,
                 created_at: SystemTime::now(),
-            })
-            .from_err()))
+            }).from_err()))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -110,7 +107,8 @@ pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();
 
     // try manual way to parse json payload
-    call_ctrl!(|| req.json()
+    call_ctrl!(|| req
+        .json()
         .from_err()
         .and_then(move |updated_paste: UpdatePaste| db_chan
             .send(paste_srv::UpdatePasteMsg {
@@ -118,8 +116,7 @@ pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
                 title: updated_paste.title,
                 body: updated_paste.body,
                 modified_at: SystemTime::now(),
-            })
-            .from_err()))
+            }).from_err()))
 }
 
 pub fn del_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
@@ -134,8 +131,8 @@ pub fn del_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
 
 // format: "GT/EQ/LT/GE/LE,seconds_since_UNIX_EPOCH"
 fn parse_time_cond(cond_str: &str) -> Result<paste_srv::TimeCondition, Error> {
-    use std::time::{Duration, UNIX_EPOCH};
     use self::paste_srv::{CmpOp, TimeCondition};
+    use std::time::{Duration, UNIX_EPOCH};
 
     let default_err = Err(Error::PayloadError(
         constant::ERR_MSG_PAYLOAD_PARSE_TIME_COND_FAIL.to_owned(),

@@ -4,7 +4,7 @@ use std::sync::mpsc::channel;
 use actix;
 use actix::prelude::*;
 
-use db::{self, executor::DbExecutor};
+use crate::db::{self, executor::DbExecutor};
 
 #[macro_use]
 pub mod macros;

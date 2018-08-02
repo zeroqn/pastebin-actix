@@ -6,12 +6,12 @@ use futures::Future;
 
 use actix::prelude::*;
 
-use TEST_DB_CHAN;
+use crate::TEST_DB_CHAN;
 
-use db::executor::DbExecutor;
-use services::paste as paste_srv;
-use models::paste::*;
-use models::schema::*;
+use crate::db::executor::DbExecutor;
+use crate::models::paste::*;
+use crate::models::schema::*;
+use crate::services::paste as paste_srv;
 
 pub fn create_test_paste_list() -> Vec<Paste> {
     use std::time::SystemTime;

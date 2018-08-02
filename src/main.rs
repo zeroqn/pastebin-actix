@@ -24,7 +24,7 @@ mod tests;
 use actix_web::server;
 use actix::prelude::*;
 
-use common::db::{self, executor::DbExecutor};
+use crate::common::db::{self, executor::DbExecutor};
 
 lazy_static! {
     static ref ENV: common::env::Env = common::env::load();

@@ -6,8 +6,8 @@ use diesel::result::Error as DieselError;
 
 use actix::prelude::*;
 
-use db::executor::DbExecutor;
-use models::paste::{NewPaste, Paste};
+use crate::db::executor::DbExecutor;
+use crate::models::paste::{NewPaste, Paste};
 
 pub struct CreatePasteMsg {
     pub title: String,
@@ -23,7 +23,7 @@ impl Handler<CreatePasteMsg> for DbExecutor {
     type Result = Result<Paste, DieselError>;
 
     fn handle(&mut self, msg: CreatePasteMsg, _: &mut Self::Context) -> Self::Result {
-        use models::schema::pastes::dsl::*;
+        use crate::models::schema::pastes::dsl::*;
 
         let new_paste = NewPaste {
             title: &msg.title,
@@ -53,7 +53,7 @@ impl Handler<UpdatePasteMsg> for DbExecutor {
     type Result = Result<Paste, DieselError>;
 
     fn handle(&mut self, msg: UpdatePasteMsg, _: &mut Self::Context) -> Self::Result {
-        use models::schema::pastes::dsl::*;
+        use crate::models::schema::pastes::dsl::*;
 
         diesel::update(pastes.find(msg.id))
             .set((
@@ -77,7 +77,7 @@ impl Handler<GetPasteByIdMsg> for DbExecutor {
     type Result = Result<Paste, DieselError>;
 
     fn handle(&mut self, msg: GetPasteByIdMsg, _: &mut Self::Context) -> Self::Result {
-        use models::schema::pastes::dsl::*;
+        use crate::models::schema::pastes::dsl::*;
 
         pastes.find(msg.id).get_result(self.conn())
     }
@@ -182,7 +182,7 @@ impl Handler<GetPasteListMsg> for DbExecutor {
     type Result = Result<Vec<Paste>, DieselError>;
 
     fn handle(&mut self, msg: GetPasteListMsg, _: &mut Self::Context) -> Self::Result {
-        use models::schema::pastes::dsl::*;
+        use crate::models::schema::pastes::dsl::*;
 
         let mut query = pastes.into_boxed();
 
@@ -232,7 +232,7 @@ impl Handler<DelPasteByIdMsg> for DbExecutor {
     type Result = Result<usize, DieselError>;
 
     fn handle(&mut self, msg: DelPasteByIdMsg, _: &mut Self::Context) -> Self::Result {
-        use models::schema::pastes::dsl::*;
+        use crate::models::schema::pastes::dsl::*;
 
         diesel::delete(pastes)
             .filter(id.eq(msg.id))
@@ -246,7 +246,7 @@ mod tests {
     use std::time::Duration;
     use futures::future::Future;
 
-    use TEST_DB_CHAN;
+    use crate::TEST_DB_CHAN;
 
     #[test]
     fn test_create_paste() {
@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_get_paste_list() {
-        use tests::testdata;
+        use crate::tests::testdata;
 
         let db_chan = TEST_DB_CHAN.clone();
         let test_paste_list = testdata::recreate();

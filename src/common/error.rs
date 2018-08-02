@@ -7,7 +7,7 @@ use actix_web::{HttpResponse,
 use diesel::result::Error as DieselError;
 use futures::future::{self, Future};
 
-use common::constant;
+use crate::common::constant;
 
 #[derive(Debug)]
 pub enum Error {

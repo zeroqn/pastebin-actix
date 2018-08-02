@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use models::schema::pastes;
+use crate::models::schema::pastes;
 
 #[derive(Queryable, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Paste {
