@@ -1,7 +1,10 @@
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
 use futures::future::{self, Future};
 
-use crate::common::{constant, error::Error};
+use crate::common::{
+    constant,
+    error::{ServerError, UserError},
+};
 use crate::controllers::FutureJsonResponse;
 use crate::services::paste as paste_srv;
 use crate::State;
@@ -12,7 +15,10 @@ pub fn get_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     call_ctrl!(|| future::ok(req.clone())
         .and_then(|req| req.match_info()["id"].parse::<i64>())
         .from_err()
-        .and_then(move |id| db_chan.send(paste_srv::GetPasteByIdMsg { id }).from_err()))
+        .and_then(move |id| db_chan
+            .send(paste_srv::GetPasteByIdMsg { id })
+            .map_err(ServerError::MailBox)
+            .from_err()))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -68,7 +74,7 @@ pub fn get_paste_list(
         .and_then(move |mut msg| orderby_list.map(|orderby_list| {
             msg.orderby_list = orderby_list;
             msg
-        })).and_then(move |msg| db_chan.send(msg).from_err()))
+        })).and_then(move |msg| db_chan.send(msg).map_err(ServerError::MailBox).from_err()))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -91,7 +97,8 @@ pub fn create_paste(req: &HttpRequest<State>) -> FutureJsonResponse {
                 title: new_paste.title,
                 body: new_paste.body,
                 created_at: SystemTime::now(),
-            }).from_err()))
+            }).map_err(ServerError::MailBox)
+            .from_err()))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -115,7 +122,8 @@ pub fn update_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
                 title: updated_paste.title,
                 body: updated_paste.body,
                 modified_at: SystemTime::now(),
-            }).from_err()))
+            }).map_err(ServerError::MailBox)
+            .from_err()))
 }
 
 pub fn del_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
@@ -124,16 +132,18 @@ pub fn del_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     call_ctrl!(|| future::ok(req.clone())
         .and_then(|req| req.match_info()["id"].parse::<i64>())
         .from_err()
-        .and_then(move |id| db_chan.send(paste_srv::DelPasteByIdMsg { id }).from_err())
-        .map(|res| res.map(|_| "ok")))
+        .and_then(move |id| db_chan
+            .send(paste_srv::DelPasteByIdMsg { id })
+            .map_err(ServerError::MailBox)
+            .from_err()).map(|res| res.map(|_| "ok")))
 }
 
 // format: "GT/EQ/LT/GE/LE,seconds_since_UNIX_EPOCH"
-fn parse_time_cond(cond_str: &str) -> Result<paste_srv::TimeCondition, Error> {
+fn parse_time_cond(cond_str: &str) -> Result<paste_srv::TimeCondition, UserError> {
     use self::paste_srv::{CmpOp, TimeCondition};
     use std::time::{Duration, UNIX_EPOCH};
 
-    let default_err = Err(Error::PayloadError(
+    let default_err = Err(UserError::PayloadError(
         constant::ERR_MSG_PAYLOAD_PARSE_TIME_COND_FAIL.to_owned(),
     ));
     let op_secs: Vec<&str> = cond_str.split(',').collect();
@@ -162,10 +172,10 @@ fn parse_time_cond(cond_str: &str) -> Result<paste_srv::TimeCondition, Error> {
 }
 
 // format: "Title/Body/CreatedAt/ModifiedAt:asc/decs"
-fn parse_orderby(orderby_str: &str) -> Result<Vec<paste_srv::Orderby>, Error> {
+fn parse_orderby(orderby_str: &str) -> Result<Vec<paste_srv::Orderby>, UserError> {
     use self::paste_srv::{Item, Order, Orderby};
 
-    let default_err = Err(Error::PayloadError(
+    let default_err = Err(UserError::PayloadError(
         constant::ERR_MSG_PAYLOAD_PARSE_ORDERBY_FAIL.to_owned(),
     ));
     let comps: Vec<&str> = orderby_str.split(',').collect();

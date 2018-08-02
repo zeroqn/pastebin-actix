@@ -1,11 +1,9 @@
 use std::time::SystemTime;
 
-use diesel;
-use diesel::prelude::*;
-use diesel::result::Error as DieselError;
-
 use actix::prelude::*;
+use diesel::{self, prelude::*};
 
+use crate::common::error::ServerError;
 use crate::db::executor::DbExecutor;
 use crate::models::paste::{NewPaste, Paste};
 
@@ -16,11 +14,11 @@ pub struct CreatePasteMsg {
 }
 
 impl Message for CreatePasteMsg {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 }
 
 impl Handler<CreatePasteMsg> for DbExecutor {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 
     fn handle(&mut self, msg: CreatePasteMsg, _: &mut Self::Context) -> Self::Result {
         use crate::models::schema::pastes::dsl::*;
@@ -35,6 +33,7 @@ impl Handler<CreatePasteMsg> for DbExecutor {
         diesel::insert_into(pastes)
             .values(&new_paste)
             .get_result(self.conn())
+            .map_err(|e| ServerError::Database(e))
     }
 }
 
@@ -46,11 +45,11 @@ pub struct UpdatePasteMsg {
 }
 
 impl Message for UpdatePasteMsg {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 }
 
 impl Handler<UpdatePasteMsg> for DbExecutor {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 
     fn handle(&mut self, msg: UpdatePasteMsg, _: &mut Self::Context) -> Self::Result {
         use crate::models::schema::pastes::dsl::*;
@@ -61,6 +60,7 @@ impl Handler<UpdatePasteMsg> for DbExecutor {
                 body.eq(msg.body),
                 modified_at.eq(msg.modified_at),
             )).get_result(self.conn())
+            .map_err(|e| ServerError::Database(e))
     }
 }
 
@@ -69,16 +69,19 @@ pub struct GetPasteByIdMsg {
 }
 
 impl Message for GetPasteByIdMsg {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 }
 
 impl Handler<GetPasteByIdMsg> for DbExecutor {
-    type Result = Result<Paste, DieselError>;
+    type Result = Result<Paste, ServerError>;
 
     fn handle(&mut self, msg: GetPasteByIdMsg, _: &mut Self::Context) -> Self::Result {
         use crate::models::schema::pastes::dsl::*;
 
-        pastes.find(msg.id).get_result(self.conn())
+        pastes
+            .find(msg.id)
+            .get_result(self.conn())
+            .map_err(|e| ServerError::Database(e))
     }
 }
 
@@ -174,11 +177,11 @@ impl Default for GetPasteListMsg {
 }
 
 impl Message for GetPasteListMsg {
-    type Result = Result<Vec<Paste>, DieselError>;
+    type Result = Result<Vec<Paste>, ServerError>;
 }
 
 impl Handler<GetPasteListMsg> for DbExecutor {
-    type Result = Result<Vec<Paste>, DieselError>;
+    type Result = Result<Vec<Paste>, ServerError>;
 
     fn handle(&mut self, msg: GetPasteListMsg, _: &mut Self::Context) -> Self::Result {
         use crate::models::schema::pastes::dsl::*;
@@ -215,7 +218,9 @@ impl Handler<GetPasteListMsg> for DbExecutor {
             query = query.offset(offset);
         }
 
-        query.load::<Paste>(self.conn())
+        query
+            .load::<Paste>(self.conn())
+            .map_err(|e| ServerError::Database(e))
     }
 }
 
@@ -224,11 +229,11 @@ pub struct DelPasteByIdMsg {
 }
 
 impl Message for DelPasteByIdMsg {
-    type Result = Result<usize, DieselError>;
+    type Result = Result<usize, ServerError>;
 }
 
 impl Handler<DelPasteByIdMsg> for DbExecutor {
-    type Result = Result<usize, DieselError>;
+    type Result = Result<usize, ServerError>;
 
     fn handle(&mut self, msg: DelPasteByIdMsg, _: &mut Self::Context) -> Self::Result {
         use crate::models::schema::pastes::dsl::*;
@@ -236,6 +241,7 @@ impl Handler<DelPasteByIdMsg> for DbExecutor {
         diesel::delete(pastes)
             .filter(id.eq(msg.id))
             .execute(self.conn())
+            .map_err(|e| ServerError::Database(e))
     }
 }
 

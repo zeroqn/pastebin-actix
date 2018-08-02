@@ -6,6 +6,8 @@ extern crate diesel;
 extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate failure_derive;
 
 mod apps;
 mod common;

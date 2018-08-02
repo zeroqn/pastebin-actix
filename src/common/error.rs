@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, fmt, num::ParseIntError};
+use std::num::ParseIntError;
 
 use actix::MailboxError;
 use actix_web::{
@@ -7,91 +7,67 @@ use actix_web::{
     HttpResponse,
 };
 use diesel::result::Error as DieselError;
-use futures::future::{self, Future};
 
 use crate::common::constant;
 
-#[derive(Debug)]
-pub enum Error {
+#[derive(Debug, Fail)]
+pub enum ServerError {
+    #[fail(display = "database error")]
+    Database(#[cause] DieselError),
+    #[fail(display = "actor mailbox error")]
+    MailBox(#[cause] MailboxError),
+}
+
+#[derive(Debug, Fail)]
+pub enum UserError {
+    #[fail(display = "an internal error occurred. please try again later")]
+    InternalError,
+    #[fail(display = "bad payload: {}", _0)]
     PayloadError(String),
-    DatabaseError(DieselError),
-    BadID(ParseIntError),
-    Custom(u16, String),
+    #[fail(display = "bad id")]
+    BadID(#[cause] ParseIntError),
+    #[fail(display = "data not found")]
+    NotFound,
+    #[fail(display = "code: {}, msg: {}", code, msg)]
+    Custom { code: u16, msg: String },
 }
 
-impl Error {
+impl UserError {
     pub fn bad_request(msg: &str) -> Self {
-        Error::Custom(StatusCode::BAD_REQUEST.as_u16(), msg.to_owned())
-    }
-}
-
-impl From<DieselError> for Error {
-    fn from(err: DieselError) -> Error {
-        Error::DatabaseError(err)
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(err: ParseIntError) -> Error {
-        Error::BadID(err)
-    }
-}
-
-impl From<MailboxError> for Error {
-    fn from(_err: MailboxError) -> Error {
-        Error::Custom(
-            StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-            "internal server error".to_string(),
-        )
-    }
-}
-
-impl From<PayloadError> for Error {
-    fn from(err: PayloadError) -> Error {
-        Error::PayloadError(err.to_string())
-    }
-}
-
-impl From<JsonPayloadError> for Error {
-    fn from(err: JsonPayloadError) -> Error {
-        Error::PayloadError(err.to_string())
-    }
-}
-
-impl From<Error> for Box<Future<Item = HttpResponse, Error = Error>> {
-    fn from(err: Error) -> Box<Future<Item = HttpResponse, Error = Error>> {
-        Box::new(future::err(err))
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::PayloadError(ref msg) => msg.fmt(f),
-            Error::DatabaseError(ref inner) => inner.fmt(f),
-            Error::BadID(_) => write!(f, "{}", constant::ERR_MSG_BAD_ID),
-            Error::Custom(ref code, ref msg) => write!(f, "{{ code: {}, msg: {} }}", code, msg),
+        UserError::Custom {
+            code: StatusCode::BAD_REQUEST.as_u16(),
+            msg: msg.to_owned(),
         }
     }
 }
 
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::PayloadError(ref msg) => msg,
-            Error::DatabaseError(ref err) => err.description(),
-            Error::BadID(ref err) => err.description(),
-            Error::Custom(.., ref msg) => msg,
+impl From<ServerError> for UserError {
+    fn from(err: ServerError) -> Self {
+        match err {
+            ServerError::Database(ref cause) => match cause {
+                &DieselError::NotFound => UserError::NotFound,
+                _ => UserError::InternalError,
+            },
+            _ => UserError::InternalError,
         }
     }
+}
 
-    fn cause(&self) -> Option<&StdError> {
-        match *self {
-            Error::PayloadError(_) => None,
-            Error::DatabaseError(ref err) => Some(err),
-            Error::BadID(ref err) => Some(err),
-            Error::Custom(_, _) => None,
-        }
+impl From<ParseIntError> for UserError {
+    fn from(err: ParseIntError) -> Self {
+        UserError::BadID(err)
+    }
+}
+
+impl From<PayloadError> for UserError {
+    fn from(err: PayloadError) -> Self {
+        UserError::PayloadError(err.to_string())
+    }
+}
+
+impl From<JsonPayloadError> for UserError {
+    fn from(err: JsonPayloadError) -> Self {
+        UserError::PayloadError(err.to_string())
     }
 }
 
@@ -101,28 +77,26 @@ pub struct ResponseError {
     pub msg: String,
 }
 
-impl ActixResponseError for Error {
+impl ActixResponseError for UserError {
     fn error_response(&self) -> HttpResponse {
         let res_err = match *self {
-            Error::PayloadError(ref msg) => ResponseError {
+            UserError::InternalError => ResponseError {
+                code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                msg: self.to_string(),
+            },
+            UserError::PayloadError(ref msg) => ResponseError {
                 code: StatusCode::BAD_REQUEST.as_u16(),
                 msg: msg.to_string(),
             },
-            Error::DatabaseError(ref err) => match err {
-                &DieselError::NotFound => ResponseError {
-                    code: StatusCode::NOT_FOUND.as_u16(),
-                    msg: constant::ERR_MSG_DATA_NOT_FOUND.to_string(),
-                },
-                _ => ResponseError {
-                    code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                    msg: constant::ERR_MSG_DATABASE_OPEARTION_FAIL.to_string(),
-                },
-            },
-            Error::BadID(_) => ResponseError {
+            UserError::BadID(_) => ResponseError {
                 code: StatusCode::BAD_REQUEST.as_u16(),
                 msg: self.to_string(),
             },
-            Error::Custom(ref code, ref msg) => ResponseError {
+            UserError::NotFound => ResponseError {
+                code: StatusCode::NOT_FOUND.as_u16(),
+                msg: self.to_string(),
+            },
+            UserError::Custom { ref code, ref msg } => ResponseError {
                 code: *code,
                 msg: msg.to_string(),
             },

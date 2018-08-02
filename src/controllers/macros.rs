@@ -3,7 +3,7 @@ macro_rules! call_ctrl {
         $ctrl_fn()
             .and_then(|result| match result {
                 Ok(result) => Ok(HttpResponse::Ok().json(result)),
-                Err(err) => Err(Error::from(err)),
+                Err(err) => Err(UserError::from(err)),
             }).responder()
     };
 }
