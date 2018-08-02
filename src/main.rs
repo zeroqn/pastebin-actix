@@ -1,17 +1,11 @@
 #![feature(rust_2018_preview)]
 
-extern crate actix;
-extern crate actix_web;
 #[macro_use]
 extern crate diesel;
-extern crate dotenv;
-extern crate futures;
 #[macro_use]
 extern crate lazy_static;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
 
 mod models;
 mod services;
