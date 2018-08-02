@@ -1,3 +1,5 @@
+#![feature(rust_2018_preview)]
+
 extern crate actix;
 extern crate actix_web;
 #[macro_use]
