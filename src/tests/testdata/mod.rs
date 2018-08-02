@@ -27,8 +27,8 @@ pub fn create_test_paste_list() -> Vec<Paste> {
     let mut paste_list: Vec<Paste> = vec![];
 
     for _ in 1..10 {
-        let mut title = title_list.pop().unwrap();
-        let mut body = body_list.pop().unwrap();
+        let title = title_list.pop().unwrap();
+        let body = body_list.pop().unwrap();
         paste_list.push(sync_send!(
             db_chan,
             paste_srv::CreatePasteMsg {
