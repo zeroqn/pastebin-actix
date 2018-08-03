@@ -1,16 +1,13 @@
 use actix_web::test::TestServer;
 use actix_web::{http::Method, App, HttpMessage};
-
 use serde_json;
-
-use crate::State;
-use crate::TEST_DB_CHAN;
 
 use crate::apps::paste as paste_app;
 use crate::common::{constant::*, error::ResponseError};
 use crate::controllers::paste::{NewPaste, UpdatePaste};
 use crate::models::paste::Paste;
-use crate::tests::testdata;
+use crate::tests::{testdata, TEST_DB_CHAN};
+use crate::State;
 
 fn create_app() -> App<State> {
     paste_app::create(State {

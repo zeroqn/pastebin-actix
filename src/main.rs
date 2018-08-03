@@ -19,29 +19,31 @@ mod tests;
 
 use actix::prelude::*;
 use actix_web::server;
+// prelude is required for PgConnection::establish()
+use diesel::{
+    pg::PgConnection,
+    prelude::*,
+    r2d2::{ConnectionManager, Pool},
+};
 
-use crate::common::db::{self, executor::DbExecutor};
+use crate::models::executor::DatabaseExecutor;
 
 lazy_static! {
     static ref ENV: common::env::Env = common::env::load();
 }
 
-#[cfg(test)]
-lazy_static! {
-    static ref TEST_DB_CHAN: Addr<DbExecutor> =
-        tests::common::connect_db(&ENV.database_url, ENV.actix_db_conns);
-}
-
 pub struct State {
-    db_chan: Addr<DbExecutor>,
+    db_chan: Addr<DatabaseExecutor>,
 }
 
 fn main() {
     let sys = actix::System::new("pastebin-actix");
 
-    let addr = SyncArbiter::start(ENV.actix_db_conns, || {
-        DbExecutor::new(db::establish_connection(&ENV.database_url))
-    });
+    let manager = ConnectionManager::<PgConnection>::new(ENV.database_url.clone());
+    let pool = Pool::builder()
+        .build(manager)
+        .expect("cannot build database connection pool");
+    let addr = SyncArbiter::start(ENV.actix_db_conns, move || DatabaseExecutor(pool.clone()));
 
     server::new(move || {
         apps::paste::create(State {

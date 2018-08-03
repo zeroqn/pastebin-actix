@@ -7,6 +7,7 @@ use actix_web::{
     HttpResponse,
 };
 use diesel::result::Error as DieselError;
+use r2d2::Error as R2d2Error;
 
 use crate::common::constant;
 
@@ -16,6 +17,8 @@ pub enum ServerError {
     Database(#[cause] DieselError),
     #[fail(display = "actor mailbox error")]
     MailBox(#[cause] MailboxError),
+    #[fail(display = "r2d2 error")]
+    R2d2(#[cause] R2d2Error),
 }
 
 #[derive(Debug, Fail)]

@@ -1,17 +1,13 @@
+use actix::prelude::*;
 use diesel;
 use diesel::prelude::*;
-use diesel::result::Error as DieselError;
-
 use futures::Future;
 
-use actix::prelude::*;
-
-use crate::TEST_DB_CHAN;
-
-use crate::db::executor::DbExecutor;
-use crate::models::paste::*;
-use crate::models::schema::*;
+use crate::common::error::ServerError;
+use crate::models::{executor::DatabaseExecutor as DbExecutor, paste::*, schema::*};
 use crate::services::paste as paste_srv;
+
+use crate::tests::TEST_DB_CHAN;
 
 pub fn create_test_paste_list() -> Vec<Paste> {
     use std::time::SystemTime;
@@ -45,14 +41,16 @@ pub fn create_test_paste_list() -> Vec<Paste> {
 pub struct ClearDb();
 
 impl Message for ClearDb {
-    type Result = Result<usize, DieselError>;
+    type Result = Result<usize, ServerError>;
 }
 
 impl Handler<ClearDb> for DbExecutor {
-    type Result = Result<usize, DieselError>;
+    type Result = Result<usize, ServerError>;
 
     fn handle(&mut self, _msg: ClearDb, _: &mut Self::Context) -> Self::Result {
-        diesel::delete(pastes::table).execute(self.conn())
+        diesel::delete(pastes::table)
+            .execute(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 

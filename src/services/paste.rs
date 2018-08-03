@@ -4,8 +4,10 @@ use actix::prelude::*;
 use diesel::{self, prelude::*};
 
 use crate::common::error::ServerError;
-use crate::db::executor::DbExecutor;
-use crate::models::paste::{NewPaste, Paste};
+use crate::models::{
+    executor::DatabaseExecutor as DbExecutor,
+    paste::{NewPaste, Paste},
+};
 
 pub struct CreatePasteMsg {
     pub title: String,
@@ -32,8 +34,8 @@ impl Handler<CreatePasteMsg> for DbExecutor {
 
         diesel::insert_into(pastes)
             .values(&new_paste)
-            .get_result(self.conn())
-            .map_err(|e| ServerError::Database(e))
+            .get_result(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 
@@ -59,8 +61,8 @@ impl Handler<UpdatePasteMsg> for DbExecutor {
                 title.eq(msg.title),
                 body.eq(msg.body),
                 modified_at.eq(msg.modified_at),
-            )).get_result(self.conn())
-            .map_err(|e| ServerError::Database(e))
+            )).get_result(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 
@@ -80,8 +82,8 @@ impl Handler<GetPasteByIdMsg> for DbExecutor {
 
         pastes
             .find(msg.id)
-            .get_result(self.conn())
-            .map_err(|e| ServerError::Database(e))
+            .get_result(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 
@@ -219,8 +221,8 @@ impl Handler<GetPasteListMsg> for DbExecutor {
         }
 
         query
-            .load::<Paste>(self.conn())
-            .map_err(|e| ServerError::Database(e))
+            .load::<Paste>(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 
@@ -240,8 +242,8 @@ impl Handler<DelPasteByIdMsg> for DbExecutor {
 
         diesel::delete(pastes)
             .filter(id.eq(msg.id))
-            .execute(self.conn())
-            .map_err(|e| ServerError::Database(e))
+            .execute(&self.0.get().map_err(ServerError::R2d2)?)
+            .map_err(ServerError::Database)
     }
 }
 
@@ -251,7 +253,12 @@ mod tests {
     use futures::future::Future;
     use std::time::Duration;
 
-    use crate::TEST_DB_CHAN;
+    use crate::ENV;
+
+    lazy_static! {
+        static ref TEST_DB_CHAN: Addr<DbExecutor> =
+            crate::tests::common::connect_db(&ENV.database_url, ENV.actix_db_conns);
+    }
 
     #[test]
     fn test_create_paste() {
