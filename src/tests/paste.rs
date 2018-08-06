@@ -6,12 +6,12 @@ use crate::apps::paste as paste_app;
 use crate::common::{constant::*, error::ResponseError};
 use crate::controllers::paste::{NewPaste, UpdatePaste};
 use crate::models::paste::Paste;
-use crate::tests::{testdata, TEST_DB_CHAN};
+use crate::tests::TEST_SUIT;
 use crate::State;
 
 fn create_app() -> App<State> {
     paste_app::create(State {
-        db_chan: TEST_DB_CHAN.clone(),
+        db_chan: TEST_SUIT.executor(),
     })
 }
 
@@ -21,7 +21,8 @@ fn init_server() -> TestServer {
 
 #[test]
 fn test_get_paste_by_id() {
-    let paste_list = testdata::recreate();
+    let _lock = TEST_SUIT.begin_isolated_test();
+    let paste_list = TEST_SUIT.data();
     let paste = paste_list.first().unwrap();
 
     let mut srv = init_server();
@@ -64,21 +65,8 @@ fn test_get_paste_by_none_exist_id() {
 
 #[test]
 fn test_get_paste_list() {
-    testdata::recreate();
-    let mut srv = init_server();
-
-    let req = srv
-        .client(
-            Method::GET,
-            &format!(
-                "/pastes?title_pat{}&body_pat{}&limit={}&cmp_created_at={}&orderby_list={}",
-                "test", "test body", 5, "GT%2C100000", "Title%3Aasc%2CBody%3Aasc"
-            ),
-        ).finish()
-        .unwrap();
-
-    assert_res!(srv, req, Vec<Paste>, |pastes: Vec<Paste>| {
-        assert_eq!(pastes.len(), 5);
+    let _lock = TEST_SUIT.begin_isolated_test();
+    let assert_pastes = |pastes: Vec<Paste>| {
         for (idx, paste) in pastes.iter().enumerate() {
             assert!(paste.title.contains("test"));
             assert!(paste.body.contains("test body"));
@@ -91,6 +79,46 @@ fn test_get_paste_list() {
                 "test body ".to_string() + &(idx + 1).to_string()
             );
         }
+    };
+
+    let mut srv = init_server();
+
+    // fetch without query string
+    let req = srv.client(Method::GET, "/pastes").finish().unwrap();
+    assert_res!(srv, req, Vec<Paste>, |pastes: Vec<Paste>| {
+        assert_eq!(pastes.len(), 9);
+        assert_pastes(pastes);
+    });
+
+    // exactly fetch
+    let req = srv
+        .client(
+            Method::GET,
+            &format!(
+                "/pastes?title_pat={}&body_pat={}",
+                "test title", "test body 1"
+            ),
+        ).finish()
+        .unwrap();
+    assert_res!(srv, req, Vec<Paste>, |mut pastes: Vec<Paste>| {
+        assert_eq!(pastes.len(), 1);
+        assert_eq!(pastes.pop().unwrap().title, "test title 1");
+    });
+
+    // try apply some conditions
+    let req = srv
+        .client(
+            Method::GET,
+            &format!(
+                "/pastes?title_pat={}&body_pat={}&limit={}&cmp_created_at={}&orderby_list={}",
+                "test", "test body", 5, "GT%2C100000", "Title%3Aasc%2CBody%3Aasc"
+            ),
+        ).finish()
+        .unwrap();
+
+    assert_res!(srv, req, Vec<Paste>, |pastes: Vec<Paste>| {
+        assert_eq!(pastes.len(), 5);
+        assert_pastes(pastes);
     });
 }
 
@@ -102,7 +130,7 @@ fn test_get_paste_list_with_bad_cmp_created_at() {
         .client(
             Method::GET,
             &format!(
-                "/pastes?title_pat{}&body_pat{}&limit={}&cmp_created_at={}",
+                "/pastes?title_pat={}&body_pat={}&limit={}&cmp_created_at={}",
                 "test", "test body", 5, "DD%2C100000"
             ),
         ).finish()
@@ -119,7 +147,7 @@ fn test_get_paste_list_with_bad_cmp_modified_at() {
         .client(
             Method::GET,
             &format!(
-                "/pastes?title_pat{}&body_pat{}&limit={}&cmp_modified_at={}",
+                "/pastes?title_pat={}&body_pat={}&limit={}&cmp_modified_at={}",
                 "test", "test body", 5, "DD%2C100000"
             ),
         ).finish()
@@ -136,7 +164,7 @@ fn test_get_paste_list_with_bad_orderby_list() {
         .client(
             Method::GET,
             &format!(
-                "/pastes?title_pat{}&body_pat{}&limit={}&orderby_list={}",
+                "/pastes?title_pat={}&body_pat={}&limit={}&orderby_list={}",
                 "test", "test body", 5, "BAD%3Aasc"
             ),
         ).finish()
@@ -147,6 +175,7 @@ fn test_get_paste_list_with_bad_orderby_list() {
 
 #[test]
 fn test_creat_paste() {
+    let _lock = TEST_SUIT.begin_isolated_test();
     let mut srv = init_server();
 
     let req = srv
@@ -183,7 +212,8 @@ fn test_create_paste_with_bad_payload() {
 
 #[test]
 fn test_update_paste() {
-    let paste_list = testdata::recreate();
+    let _lock = TEST_SUIT.begin_isolated_test();
+    let paste_list = TEST_SUIT.data();
     let paste = paste_list.first().unwrap();
 
     let mut srv = init_server();
@@ -206,7 +236,7 @@ fn test_update_paste() {
 
 #[test]
 fn test_update_paste_with_bad_payload() {
-    let paste_list = testdata::recreate();
+    let paste_list = TEST_SUIT.data();
     let paste = paste_list.first().unwrap();
 
     let mut srv = init_server();
@@ -224,7 +254,8 @@ fn test_update_paste_with_bad_payload() {
 
 #[test]
 fn test_del_paste_by_id() {
-    let paste_list = testdata::recreate();
+    let _lock = TEST_SUIT.begin_isolated_test();
+    let paste_list = TEST_SUIT.data();
     let paste = paste_list.first().unwrap();
 
     let mut srv = init_server();
@@ -241,9 +272,8 @@ fn test_del_paste_by_id() {
 
 #[test]
 fn test_del_paste_by_bad_id() {
-    testdata::recreate();
-
     let mut srv = init_server();
+
     let req = srv
         .client(Method::DELETE, &format!("/pastes/{}", "dddd"))
         .finish()

@@ -1,10 +1,8 @@
 use actix::prelude::*;
 use diesel::{
     pg::PgConnection,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
+    r2d2::{ConnectionManager, Pool},
 };
-
-use crate::common::error::ServerError;
 
 pub struct DatabaseExecutor(pub Pool<ConnectionManager<PgConnection>>);
 
