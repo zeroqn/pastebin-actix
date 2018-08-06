@@ -1,0 +1,12 @@
+[server]
+ip = "127.0.0.1"
+port = "8080"
+
+[actix]
+connections = 1
+
+[postgres]
+host = "127.0.0.1"
+username = "postgres"
+password = "pastebinactix"
+database = "pastebin_actix"

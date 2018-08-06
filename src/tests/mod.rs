@@ -8,15 +8,21 @@ use diesel::{
     r2d2::{ConnectionManager, CustomizeConnection, Error as R2d2Error, Pool},
 };
 
+use crate::common::config::Config;
 use crate::models::{executor::DatabaseExecutor as DBExecutor, paste::Paste};
-use crate::ENV;
 
 #[macro_use]
 pub mod macros;
 pub mod paste;
 
 lazy_static! {
-    static ref TEST_SUIT: TestSuit = TestSuit::new(&ENV.database_url);
+    static ref TEST_SUIT: TestSuit = TestSuit::new();
+}
+
+pub mod constant {
+    pub const TEST_CONFIG_FILENAME: &str = "test_config.toml";
+    pub const ERR_MSG_BAD_ID: &str = "bad id";
+    pub const ERR_MSG_DATA_NOT_FOUND: &str = "data not found";
 }
 
 #[derive(Debug)]
@@ -52,9 +58,18 @@ struct TestSuit {
 }
 
 impl TestSuit {
-    pub fn new(database_url: &'static str) -> Self {
-        let data = Self::create_data(database_url);
-        let pool = Self::create_pool(database_url);
+    pub fn new() -> Self {
+        let config = Config::load(constant::TEST_CONFIG_FILENAME);
+        let database_url = format!(
+            "postgres://{}:{}@{}/{}",
+            config.postgres.username,
+            config.postgres.password,
+            config.postgres.host,
+            config.postgres.database,
+        );
+
+        let data = Self::create_data(&database_url);
+        let pool = Self::create_pool(&database_url);
         let executor = Self::create_executor(pool);
 
         TestSuit {
@@ -86,7 +101,7 @@ impl TestSuit {
         guard
     }
 
-    pub fn create_pool(database_url: &'static str) -> Pool<ConnectionManager<PgConnection>> {
+    pub fn create_pool(database_url: &str) -> Pool<ConnectionManager<PgConnection>> {
         let manager = ConnectionManager::<PgConnection>::new(database_url.to_owned());
         Pool::builder()
             .max_size(1)

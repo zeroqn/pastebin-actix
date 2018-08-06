@@ -6,7 +6,7 @@ use crate::apps::paste as paste_app;
 use crate::common::{constant::*, error::ResponseError};
 use crate::controllers::paste::{NewPaste, UpdatePaste};
 use crate::models::paste::Paste;
-use crate::tests::TEST_SUIT;
+use crate::tests::{constant::*, TEST_SUIT};
 use crate::State;
 
 fn create_app() -> App<State> {
