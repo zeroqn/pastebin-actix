@@ -6,8 +6,8 @@ use crate::common::{
     error::{ServerError, UserError},
 };
 use crate::controllers::FutureJsonResponse;
+use crate::server::State;
 use crate::services::paste as paste_srv;
-use crate::State;
 
 pub fn get_paste_by_id(req: &HttpRequest<State>) -> FutureJsonResponse {
     let db_chan = req.state().db_chan.clone();

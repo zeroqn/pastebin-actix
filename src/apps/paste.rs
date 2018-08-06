@@ -1,7 +1,7 @@
 use actix_web::{pred, App};
 
 use crate::controllers::paste::*;
-use crate::State;
+use crate::server::State;
 
 pub fn create(state: State) -> App<State> {
     App::with_state(state)
