@@ -22,7 +22,6 @@ use actix_web::server;
 // prelude is required for PgConnection::establish()
 use diesel::{
     pg::PgConnection,
-    prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
 
